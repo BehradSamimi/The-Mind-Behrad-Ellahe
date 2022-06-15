@@ -62,6 +62,7 @@ public class MainServer {
                             for (int i = 0; i < pendingGameServers.size(); i++) {
                                 if (res.equals(String.valueOf(i + 1))) {
                                     pendingGameServers.get(i).players.add(newPlayer);
+                                    newPlayer.gameServer = pendingGameServers.get(i);
                                     PrintWriter tellOwner = null;
                                     try {
                                          tellOwner = new PrintWriter(pendingGameServers.get(i).players.get(0).socket.getOutputStream(), true);
@@ -71,6 +72,7 @@ public class MainServer {
                                         e.printStackTrace();
                                     }
                                     tellOwner.println(pendingGameServers.get(0).players.get(0).autoToken + newPlayer.name + " joined your Game Server." + "\n$$");
+                           //         tellOwner.close();
                                     printWriter.println(newPlayer.autoToken + "You joined " + pendingGameServers.get(i).name + " game server" + "\npleas wait for " + pendingGameServers.get(i).name + " to Start the game \n$$");
                                     wantNewServer = false;
                                 }
@@ -80,6 +82,7 @@ public class MainServer {
                                 gameServer.name = newPlayer.name;
                                 pendingGameServers.add(gameServer);
                                 gameServer.players.add(newPlayer);
+                                newPlayer.gameServer = gameServer;
                                 printWriter.println(newPlayer.autoToken + "please enter max number of online player that you want (a number between 1 to 4) : " + "\n$$");
                                 while (true) {
                                     newMassage = scanner.nextLine();
@@ -95,6 +98,8 @@ public class MainServer {
                         }
                         break;
                     }
+                //    printWriter.close();
+                //    scanner.close();
                 }
             }).start();
 

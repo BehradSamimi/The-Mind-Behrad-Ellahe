@@ -20,7 +20,7 @@ public class Client {
                 }
                 autoToken = scanner.nextLine();
                 System.out.println("please Enter Your Name : \n");
-                while (true) {
+                while (scanner.hasNextLine()) {
                     String massage = scanner.nextLine();
                     while (true) {
                         String tmp = "";
@@ -42,10 +42,10 @@ public class Client {
         Scanner systemScanner = new Scanner(System.in);
         PrintWriter serverPrintWriter = new PrintWriter(socket.getOutputStream(), true);
         while (true) {
-            while (systemScanner.hasNextLine()) {
+//            while (systemScanner.hasNextLine()) {
                 String massage = systemScanner.nextLine();
                 serverPrintWriter.println(autoToken + massage);
-            }
+//            }
         }
     }
 }
