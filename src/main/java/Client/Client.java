@@ -42,8 +42,10 @@ public class Client {
         Scanner systemScanner = new Scanner(System.in);
         PrintWriter serverPrintWriter = new PrintWriter(socket.getOutputStream(), true);
         while (true) {
-            String massage = systemScanner.nextLine();
-            serverPrintWriter.println(autoToken + massage);
+            while (systemScanner.hasNextLine()) {
+                String massage = systemScanner.nextLine();
+                serverPrintWriter.println(autoToken + massage);
+            }
         }
     }
 }
