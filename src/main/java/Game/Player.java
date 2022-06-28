@@ -2,12 +2,14 @@ package Game;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Player extends Thread{
     public Socket socket;
     public String autoToken = "", name = "";
     public GameServer gameServer;
+    public ArrayList<Integer> cards = new ArrayList<>();
     public Player(Socket socket) {
         this.socket = socket;
     }
@@ -26,7 +28,12 @@ public class Player extends Thread{
             }
             massage = massage.substring(10);
             if (massage.equalsIgnoreCase("PMC")) {
-
+                System.out.println("HOOOOO");
+                try {
+                    gameServer.actPlayer(this);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
             if (massage.equalsIgnoreCase("PN")) {
 
