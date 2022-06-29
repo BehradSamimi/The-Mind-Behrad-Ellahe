@@ -56,7 +56,7 @@ public class MainServer {
                             continue;
                         }
                         else {
-                            Boolean wantNewServer = true;
+                            Boolean wantNewServer = true, removeServer = false;
                             String res = newMassage.substring(10);
                             System.out.println(res + ".");
                             for (int i = 0; i < pendingGameServers.size(); i++) {
@@ -74,7 +74,13 @@ public class MainServer {
                                     tellOwner.println(pendingGameServers.get(0).players.get(0).autoToken + newPlayer.name + " joined your Game Server." + "\n$$");
                            //         tellOwner.close();
                                     printWriter.println(newPlayer.autoToken + "You joined " + pendingGameServers.get(i).name + " game server" + "\npleas wait for " + pendingGameServers.get(i).name + " to Start the game \n$$");
+                                    if (pendingGameServers.get(i).maxPlayer == pendingGameServers.get(i).players.size()) {
+                                        removeServer = true;
+                                    }
                                     wantNewServer = false;
+                                }
+                                if (removeServer) {
+                                    pendingGameServers.remove(newPlayer.gameServer);
                                 }
                             }
                             if (wantNewServer) {
@@ -91,6 +97,9 @@ public class MainServer {
                                     }
                                     gameServer.maxPlayer = Integer.valueOf(newMassage.substring(10));
                                     break;
+                                }
+                                if (gameServer.maxPlayer == 1) {
+                                    pendingGameServers.remove(gameServer);
                                 }
                                 printWriter.println(newPlayer.autoToken + "when ever you want to start the game please enter 'START' . " + "\n$$");
                                 gameServer.start();

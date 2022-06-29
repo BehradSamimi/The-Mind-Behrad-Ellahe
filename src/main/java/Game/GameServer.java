@@ -4,6 +4,7 @@ import com.sun.source.tree.SynchronizedTree;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.management.PlatformLoggingMXBean;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -19,6 +20,7 @@ public class GameServer extends Thread {
     public int heartNumber = 0;
     public int ninjaNumber = 2;
     public int gameLevel = 1;
+    public int lastCardPlayed = 0;
     public LocalDateTime lastPlay = LocalDateTime.now();
 
     public Boolean isGameOn = true;
@@ -45,13 +47,13 @@ public class GameServer extends Thread {
     //    startGameScanner.close();
         int x = maxPlayer - players.size();
         for (int i = 0; i < x; i++) {
-            bots.add(new Bot("bot" + String.valueOf(i + 1)));
+            bots.add(new Bot("bot" + String.valueOf(i + 1), this));
         }
         for (Player player : players) {
             player.start();
         }
         for (Bot bot : bots) {
-   //         bot.start();
+            bot.start();
         }
         lastPlay = LocalDateTime.now();
         try {
@@ -93,44 +95,94 @@ public class GameServer extends Thread {
         System.out.println("dghghj");
         int beforeSize = floorCards.size();
         for (Player nowPlayer : players) {
-            while (nowPlayer.cards.size() > 0 && nowPlayer.cards.get(0) <= player.cards.get(0)) {
+            if (nowPlayer == player) {
+                continue;
+            }
+            while (nowPlayer.cards.size() > 0 && nowPlayer.cards.get(0) < player.cards.get(0)) {
                 floorCards.add(new FloorCard(nowPlayer.name, nowPlayer.cards.get(0)));
                 nowPlayer.cards.remove(0);
             }
         }
+        for (Bot bot : bots) {
+            while (bot.cards.size() > 0 && bot.cards.get(0) < player.cards.get(0)) {
+                floorCards.add(new FloorCard(bot.name, bot.cards.get(0)));
+                bot.cards.remove(0);
+            }
+        }
+        floorCards.add(new FloorCard(player.name, player.cards.get(0)));
+        lastCardPlayed = player.cards.get(0);
+        player.cards.remove(0);
         System.out.println("dgfeeeehghj");
-        //TODO
         if (floorCards.size() - beforeSize > 1) {
             sendAboveGameState += "OOPS player : " + player.name + " played his min card But we had smaller card than that card SOO\n";
             sendAboveGameState += "YOU GUYS LOST ONE HEART CARD\n";
             heartNumber--;
-            if (heartNumber == 0) {
-                //TODO
-            }
             sendAboveGameState += "New GameState : \n";
         }
         else {
             sendAboveGameState += "GREAT SHOT\nplayer : " + player.name + " played his min card and it was the RIGHT ONE\n";
             sendAboveGameState += "New GameState : \n";
         }
+        Collections.sort(floorCards, new SortFloorCard());
         sendStateForPlayer();
+        checkForEnd();
+        checkForNextLevel();
         lastPlay = LocalDateTime.now();
         System.out.println("THATS FUCKED");
     }
-    public synchronized void actBot(Bot bot) {
-        Duration duration = Duration.between(LocalDateTime.now(), lastPlay);
-        if (duration.getSeconds() < 1) {
+    public synchronized void actBot(Bot bot) throws IOException {
+        sendAboveGameState = "";
+        Duration duration = Duration.between(lastPlay, LocalDateTime.now());
+        if (duration.getSeconds() < 1 || bot.cards.size() == 0) {
             return;
         }
-
-
-
-
+        System.out.println("dghghj");
+        int beforeSize = floorCards.size();
+        for (Player nowPlayer : players) {
+            while (nowPlayer.cards.size() > 0 && nowPlayer.cards.get(0) < bot.cards.get(0)) {
+                floorCards.add(new FloorCard(nowPlayer.name, nowPlayer.cards.get(0)));
+                nowPlayer.cards.remove(0);
+            }
+        }
+        for (Bot nowBot : bots) {
+            if (nowBot == bot) {
+                continue;
+            }
+            while (nowBot.cards.size() > 0 && nowBot.cards.get(0) < bot.cards.get(0)) {
+                floorCards.add(new FloorCard(nowBot.name, nowBot.cards.get(0)));
+                nowBot.cards.remove(0);
+            }
+        }
+        floorCards.add(new FloorCard(bot.name, bot.cards.get(0)));
+        lastCardPlayed = bot.cards.get(0);
+        bot.cards.remove(0);
+        System.out.println("dgfeeeehghj");
+        //TODO
+        if (floorCards.size() - beforeSize > 1) {
+            sendAboveGameState += "OOPS player : " + bot.name + " played his min card But we had smaller card than that card SOO\n";
+            sendAboveGameState += "YOU GUYS LOST ONE HEART CARD\n";
+            heartNumber--;
+            sendAboveGameState += "New GameState : \n";
+        }
+        else {
+            sendAboveGameState += "GREAT SHOT\nplayer : " + bot.name + " played his min card and it was the RIGHT ONE\n";
+            sendAboveGameState += "New GameState : \n";
+        }
+        Collections.sort(floorCards, new SortFloorCard());
+        sendStateForPlayer();
+        checkForEnd();
+        checkForNextLevel();
         lastPlay = LocalDateTime.now();
     }
     public synchronized void startLevel(int level) throws IOException {
+        lastCardPlayed = 0;
+        floorCards.clear();
         sendAboveGameState = "";
         sendAboveGameState = "level " + String.valueOf(level) + " started.\n";
+        for (int i = 0; i < bots.size() + players.size() - maxPlayer; i++) {
+            players.get(players.size() - 1 - i).start();
+            bots.remove(bots.size() - 1);
+        }
         ArrayList<Integer> cards = new ArrayList<>();
         for (int i = 0; i < 100; i++)
             cards.add(i + 1);
@@ -160,8 +212,17 @@ public class GameServer extends Thread {
             Collections.sort(bot.cards);
         }
         sendStateForPlayer();
+        lastPlay = LocalDateTime.now();
     }
     public synchronized void sendStateForPlayer() throws IOException {
+        sendAboveGameState += "HEART CARD : " + " : " + String.valueOf(heartNumber) + "\n";
+        sendAboveGameState += "NINJA CARD : " + " : " + String.valueOf(ninjaNumber) + "\n";
+        for (Player player : players) {
+            sendAboveGameState += player.name + " has " + String.valueOf(player.cards.size()) + " cards\n";
+        }
+        for (Bot bot : bots) {
+            sendAboveGameState += bot.name + " has " + String.valueOf(bot.cards.size()) + " cards\n";
+        }
         sendAboveGameState += "FLOOR CARDS ::\n";
         for (FloorCard floorCard : floorCards) {
             sendAboveGameState += "card number : " + floorCard.cardNumber + " owned by : " + floorCard.name + "\n";
@@ -178,5 +239,61 @@ public class GameServer extends Thread {
             printWriter.println(player.autoToken + res);
         }
 
+    }
+    public synchronized void checkForEnd() throws IOException {
+        if (heartNumber != 0) {
+            return;
+        }
+        for (Player player : players) {
+            player.stop();
+            player.socket.close();
+        }
+        isGameOn = false;
+        this.stop();
+    }
+    public synchronized void checkForNextLevel() throws IOException {
+        int numberOfValidPlayer = 0;
+        for (Player player : players) {
+            if (player.cards.size() > 0)
+                numberOfValidPlayer++;
+        }
+        for (Bot bot : bots) {
+            if (bot.cards.size() > 0)
+                numberOfValidPlayer++;
+        }
+        if (numberOfValidPlayer <= 1 && gameLevel != 12) {
+            startLevel(++gameLevel);
+        }
+        if (gameLevel == 12 && numberOfValidPlayer < 1) {
+            for (Player player : players) {
+                PrintWriter printWriter = new PrintWriter(player.socket.getOutputStream(), true);
+                printWriter.println(player.autoToken + "YOU WON THE GAME!!\n$$");
+            }
+            heartNumber = 0;
+            checkForEnd();
+        }
+    }
+    public synchronized void playNinja(Player player) throws IOException {
+        if (ninjaNumber < 1) {
+            return;
+        }
+        ninjaNumber--;
+        for (Player nowPlayer : players) {
+            if (nowPlayer.cards.size() > 0) {
+                floorCards.add(new FloorCard(nowPlayer.name, nowPlayer.cards.get(0)));
+                nowPlayer.cards.remove(0);
+            }
+        }
+        for (Bot bot : bots) {
+            if (bot.cards.size() > 0) {
+                floorCards.add(new FloorCard(bot.name, bot.cards.get(0)));
+                bot.cards.remove(0);
+            }
+        }
+        Collections.sort(floorCards, new SortFloorCard());
+        sendAboveGameState = "player : " + player.name + " playedNinja and So every one show the min card\n";
+        sendStateForPlayer();
+        checkForNextLevel();
+        lastPlay = LocalDateTime.now();
     }
 }

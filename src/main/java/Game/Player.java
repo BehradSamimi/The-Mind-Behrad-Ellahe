@@ -36,7 +36,11 @@ public class Player extends Thread{
                 }
             }
             if (massage.equalsIgnoreCase("PN")) {
-
+                try {
+                    gameServer.playNinja(this);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
             if (massage.equals(":)") || massage.equals(":(") || massage.equals(":D")) {
                 System.out.println("HOOOO");
